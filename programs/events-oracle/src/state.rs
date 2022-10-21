@@ -2,7 +2,7 @@ use {
     anchor_lang::prelude::*,
 };
 
-pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 32 + 1 + 1 + 1 + 8;
+pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 32 + 1 + 1 + 1 + 8 + 8;
 pub const EVENT_SEED: &str = "event";
 
 pub const PARTICIPANT_SIZE: usize = 8 + 32 + 32 + 8 + 8 + 1 + 1;
@@ -17,6 +17,7 @@ pub struct Event {
     pub bump: u8,
     pub status: EventState,
     pub registration: EventState,
+    pub final_price: u64
 }
 
 #[account]

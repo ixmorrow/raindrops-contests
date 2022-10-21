@@ -18,4 +18,8 @@ pub mod events_oracle {
     pub fn join_event(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
         join_event::handler(ctx, prediction)
     }
+
+    pub fn end_event(ctx: Context<EndEventCtx>) -> Result<()> {
+        end_event::handler(ctx)
+    }
 }

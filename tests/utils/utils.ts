@@ -2,6 +2,10 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 export const PythSolFeed: PublicKey = new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix")
 
+export function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 export async function safeAirdrop(address: PublicKey, connection: Connection) {
     const acctInfo = await connection.getAccountInfo(address, "confirmed")
 
