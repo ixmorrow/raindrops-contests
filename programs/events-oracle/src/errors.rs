@@ -9,5 +9,7 @@ pub enum EventError {
     #[msg("Only the even creator/authority can perform this action")]
     InvalidEventAuthority,
     #[msg("Pyth account provided does not match Event pyth account")]
-    InvalidPythAccount
+    InvalidPythAccount,
+    #[msg("Error loading price feed")]
+    PriceFeedError
 }

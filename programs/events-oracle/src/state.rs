@@ -13,11 +13,11 @@ pub struct Event {
     pub creator: Pubkey,
     pub start_time: i64,
     pub end_time: i64,
-    pub pyth_acct: Pubkey,
+    pub pyth_price_feed: Pubkey,
     pub bump: u8,
     pub status: EventState,
     pub registration: EventState,
-    pub final_price: u64
+    pub final_price: i64
 }
 
 #[account]

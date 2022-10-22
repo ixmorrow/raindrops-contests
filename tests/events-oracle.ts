@@ -3,7 +3,7 @@ import { Program } from "@project-serum/anchor"
 import { EventsOracle } from "../target/types/events_oracle"
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, SystemProgram } from '@solana/web3.js'
 import { PythSolFeed, safeAirdrop, delay } from './utils/utils'
-import { eventCreator, participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
+import { participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
 import { BN } from "bn.js"
 
 describe("events-oracle", async () => {
@@ -12,6 +12,8 @@ describe("events-oracle", async () => {
   const program = anchor.workspace.EventsOracle as Program<EventsOracle>
   const provider = anchor.AnchorProvider.env()
   const connection = provider.connection
+
+  const eventCreator = new Keypair()
 
   const [eventAddress, eventBump] = await PublicKey.findProgramAddress(
       [eventCreator.publicKey.toBuffer(), Buffer.from("event")],
@@ -28,11 +30,11 @@ describe("events-oracle", async () => {
     await safeAirdrop(participant1Keypair.publicKey, connection)
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
 
-    await program.methods.createEvent(new BN(currentUnixTime+1))
+    await program.methods.createEvent(new BN(currentUnixTime+2))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
-        pythAcct: PythSolFeed,
+        pythPriceFeed: PythSolFeed,
         systemProgram: SystemProgram.programId
       })
       .signers([eventCreator])
@@ -40,7 +42,7 @@ describe("events-oracle", async () => {
   })
 
   it("Join Event!", async () => {
-    await program.methods.joinEvent(new BN(35))
+    let tx = await program.methods.joinEvent(new BN(35))
       .accounts({
         user: participant1Keypair.publicKey,
         participant: participant1Entry,
@@ -49,16 +51,19 @@ describe("events-oracle", async () => {
       })
       .signers([participant1Keypair])
       .rpc()
+
+      await connection.confirmTransaction(tx)
   })
 
   it("End event!", async () => {
+    // giving the contest some time to end
     await delay(3000)
 
     await program.methods.endEvent()
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
-        pythAcct: PythSolFeed,
+        pythPriceFeed: PythSolFeed,
       })
       .signers([eventCreator])
       .rpc()

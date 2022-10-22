@@ -15,7 +15,7 @@ pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64) -> Result<()> {
     event.end_time = end_time_unix;
     event.status = EventState::Started;
     event.registration = EventState::Open;
-    event.pyth_acct = ctx.accounts.pyth_acct.key();
+    event.pyth_price_feed = ctx.accounts.pyth_price_feed.key();
 
     Ok(())
 }
@@ -33,6 +33,6 @@ pub struct CreateEventCtx<'info> {
     )]
     pub event: Account<'info, Event>,
     /// CHECK: pyth account, should run some check on it
-    pub pyth_acct: AccountInfo<'info>,
+    pub pyth_price_feed: AccountInfo<'info>,
     pub system_program: Program<'info, System>
 }

@@ -2,13 +2,13 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-events_oracle = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+events_oracle = "887fNBoewDudLs7GUdEBFfpMZ9EmcFREK9Gmr3KY6pS7"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "/home/ixmorrow/.config/solana/id.json"
 
 [scripts]
