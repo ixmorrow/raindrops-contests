@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use {anchor_lang::prelude::*, instructions::*};
+use {instructions::*};
 
 pub mod errors;
 pub mod instructions;

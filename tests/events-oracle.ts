@@ -1,10 +1,12 @@
 import * as anchor from "@project-serum/anchor"
 import { Program } from "@project-serum/anchor"
 import { EventsOracle } from "../target/types/events_oracle"
-import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, SystemProgram } from '@solana/web3.js'
+import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
 import { PythSolFeed, safeAirdrop, delay } from './utils/utils'
 import { participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
 import { BN } from "bn.js"
+import { PROGRAM_ID as METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata'
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 
 describe("events-oracle", async () => {
   anchor.setProvider(anchor.AnchorProvider.env())
@@ -25,17 +27,38 @@ describe("events-oracle", async () => {
     program.programId
   )
 
+  const [programMintAuthority, authBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("mint-authority")],
+    program.programId
+  )
+
+  const [contestMint, mintBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("contest-mint"), eventAddress.toBuffer()],
+    program.programId
+  )
+
+  const [metadataAddress, metadataBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("metadata"), METADATA_PROGRAM_ID.toBuffer(), contestMint.toBuffer()],
+    METADATA_PROGRAM_ID
+  )
+
   it("Create Event", async () => {
     await safeAirdrop(eventCreator.publicKey, connection)
     await safeAirdrop(participant1Keypair.publicKey, connection)
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
 
-    await program.methods.createEvent(new BN(currentUnixTime+2))
+    await program.methods.createEvent(new BN(currentUnixTime+5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
         pythPriceFeed: PythSolFeed,
-        systemProgram: SystemProgram.programId
+        contestMint: contestMint,
+        programMintAuthority: programMintAuthority,
+        metadataAccount: metadataAddress,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        metadataProgram: METADATA_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY
       })
       .signers([eventCreator])
       .rpc()
