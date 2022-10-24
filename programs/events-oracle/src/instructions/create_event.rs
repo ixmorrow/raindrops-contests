@@ -64,6 +64,7 @@ pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64) -> Result<()> {
     event.pyth_price_feed = ctx.accounts.pyth_price_feed.key();
     event.event_mint = ctx.accounts.contest_mint.key();
     event.mint_authority = ctx.accounts.program_mint_authority.key();
+    event.mint_authority_bump = *ctx.bumps.get("program_mint_authority").unwrap();
 
     Ok(())
 }

@@ -6,7 +6,8 @@ import { PythSolFeed, safeAirdrop, delay } from './utils/utils'
 import { participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
 import { BN } from "bn.js"
 import { PROGRAM_ID as METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata'
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, ASSOCIATED_TOKEN_PROGRAM_ID, getAccount } from '@solana/spl-token'
+import { assert } from "chai"
 
 describe("events-oracle", async () => {
   anchor.setProvider(anchor.AnchorProvider.env())
@@ -21,11 +22,6 @@ describe("events-oracle", async () => {
       [eventCreator.publicKey.toBuffer(), Buffer.from("event")],
       program.programId
     )
-
-  const [participant1Entry, participant1Bump] = await PublicKey.findProgramAddress(
-    [participant1Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
-    program.programId
-  )
 
   const [programMintAuthority, authBump] = await PublicKey.findProgramAddress(
     [Buffer.from("mint-authority")],
@@ -47,7 +43,7 @@ describe("events-oracle", async () => {
     await safeAirdrop(participant1Keypair.publicKey, connection)
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
 
-    await program.methods.createEvent(new BN(currentUnixTime+5))
+    const tx = await program.methods.createEvent(new BN(currentUnixTime+5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
@@ -62,20 +58,71 @@ describe("events-oracle", async () => {
       })
       .signers([eventCreator])
       .rpc()
+
+      await connection.confirmTransaction(tx)
   })
 
-  it("Join Event!", async () => {
+  it("First participant joins event!", async () => {
+    const [participant1Entry, participant1Bump] = await PublicKey.findProgramAddress(
+      [participant1Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant1Keypair.publicKey)
+
     let tx = await program.methods.joinEvent(new BN(35))
       .accounts({
         user: participant1Keypair.publicKey,
         participant: participant1Entry,
         event: eventAddress,
-        systemProgram: SystemProgram.programId
+        contestMint: contestMint,
+        userTokenAccount: userTokenAddress,
+        programMintAuthority: programMintAuthority,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY
       })
       .signers([participant1Keypair])
       .rpc()
 
       await connection.confirmTransaction(tx)
+
+      let userTokenAcct = await getAccount(connection, userTokenAddress)
+      let participantStateAcct = await program.account.eventParticipant.fetch(participant1Entry)
+      assert(userTokenAcct.amount == BigInt(1))
+      assert(participantStateAcct.contestantMint.toBase58() == contestMint.toBase58())
+      assert(participantStateAcct.contestantTokenAcct.toBase58() == userTokenAddress.toBase58())
+  })
+
+  it("Second participant joins event!", async () => {
+    await safeAirdrop(participant2Keypair.publicKey, connection)
+    const [participant2Entry, participant2Bump] = await PublicKey.findProgramAddress(
+      [participant2Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant2Keypair.publicKey)
+
+    let tx = await program.methods.joinEvent(new BN(42))
+      .accounts({
+        user: participant2Keypair.publicKey,
+        participant: participant2Entry,
+        event: eventAddress,
+        contestMint: contestMint,
+        userTokenAccount: userTokenAddress,
+        programMintAuthority: programMintAuthority,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY
+      })
+      .signers([participant2Keypair])
+      .rpc()
+
+      await connection.confirmTransaction(tx)
+
+      let userTokenAcct = await getAccount(connection, userTokenAddress)
+      let participantStateAcct = await program.account.eventParticipant.fetch(participant2Entry)
+      assert(userTokenAcct.amount == BigInt(1))
+      assert(participantStateAcct.contestantMint.toBase58() == contestMint.toBase58())
+      assert(participantStateAcct.contestantTokenAcct.toBase58() == userTokenAddress.toBase58())
   })
 
   it("End event!", async () => {
