@@ -24,10 +24,6 @@ pub fn handler(ctx: Context<EndEventCtx>) -> Result<()> {
     event.pyth_exponent = current_price.expo;
     msg!("Exponent: {}", event.pyth_exponent);
 
-    // let normalize = (10 as i64).checked_pow(current_price.expo as u32).unwrap();
-    // let decimal_value = event.final_price.checked_mul(normalize.try_into().unwrap()).unwrap();
-    // msg!("Decomal value: {}", decimal_value);
-
     event.status = EventState::Finished;
     event.registration = EventState::Closed;
 
@@ -46,7 +42,7 @@ pub struct EndEventCtx<'info> {
         seeds = [authority.key().as_ref(), EVENT_SEED.as_bytes()],
         bump = event.bump,
     )]
-    pub event: Account<'info, Event>,
+    pub event: Box<Account<'info, Event>>,
     /// CHECK: Pyth price feed
     #[account(
         mut,

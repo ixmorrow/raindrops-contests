@@ -5,8 +5,9 @@ import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, SystemProgram, SYSVAR
 import { PythSolFeed, safeAirdrop, delay } from './utils/utils'
 import { participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
 import { BN } from "bn.js"
-import { PROGRAM_ID as METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata'
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, ASSOCIATED_TOKEN_PROGRAM_ID, getAccount } from '@solana/spl-token'
+import { Key, PROGRAM_ID as METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata'
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, ASSOCIATED_TOKEN_PROGRAM_ID, getAccount,
+  createMint, mintTo, getOrCreateAssociatedTokenAccount } from '@solana/spl-token'
 import { assert } from "chai"
 
 describe("events-oracle", async () => {
@@ -17,6 +18,7 @@ describe("events-oracle", async () => {
   const connection = provider.connection
 
   const eventCreator = new Keypair()
+  let rewardMintAddress: PublicKey = null
 
   const [eventAddress, eventBump] = await PublicKey.findProgramAddress(
       [eventCreator.publicKey.toBuffer(), Buffer.from("event")],
@@ -38,18 +40,35 @@ describe("events-oracle", async () => {
     METADATA_PROGRAM_ID
   )
 
+  const [rewardVault, rewardBump] = await PublicKey.findProgramAddress(
+    [Buffer.from("reward-vault"), eventAddress.toBuffer()],
+    program.programId
+  )
+
   it("Create Event", async () => {
     await safeAirdrop(eventCreator.publicKey, connection)
     await safeAirdrop(participant1Keypair.publicKey, connection)
+
+    let rewardMint = await createMint(
+      connection,
+      eventCreator,
+      eventCreator.publicKey,
+      null,
+      9
+    )
+    rewardMintAddress = rewardMint
+
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
 
-    const tx = await program.methods.createEvent(new BN(currentUnixTime+8))
+    const tx = await program.methods.createEvent(new BN(currentUnixTime+8), new BN(5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
         pythPriceFeed: PythSolFeed,
         contestMint: contestMint,
         programMintAuthority: programMintAuthority,
+        rewardMint: rewardMint,
+        rewardVault: rewardVault,
         metadataAccount: metadataAddress,
         tokenProgram: TOKEN_PROGRAM_ID,
         metadataProgram: METADATA_PROGRAM_ID,
@@ -63,11 +82,22 @@ describe("events-oracle", async () => {
   })
 
   it("First participant joins event!", async () => {
+    const ata = await getOrCreateAssociatedTokenAccount(connection, participant1Keypair, rewardMintAddress, participant1Keypair.publicKey)
+    await mintTo(
+      connection,
+      participant1Keypair,
+      rewardMintAddress,
+      ata.address,
+      eventCreator,
+      100 * 100000000
+    )
+
     const [participant1Entry, participant1Bump] = await PublicKey.findProgramAddress(
       [participant1Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
       program.programId
     )
     const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant1Keypair.publicKey)
+    const userWagerTokenAddress = await getAssociatedTokenAddress(rewardMintAddress, participant1Keypair.publicKey)
 
     let tx = await program.methods.joinEvent(new BN(352))
       .accounts({
@@ -76,7 +106,10 @@ describe("events-oracle", async () => {
         event: eventAddress,
         contestMint: contestMint,
         userTokenAccount: userTokenAddress,
+        userWagerTokenAccount: userWagerTokenAddress,
+        rewardVault: rewardVault,
         programMintAuthority: programMintAuthority,
+        tokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY
@@ -95,6 +128,17 @@ describe("events-oracle", async () => {
 
   it("Second participant joins event!", async () => {
     await safeAirdrop(participant2Keypair.publicKey, connection)
+
+    const ata = await getOrCreateAssociatedTokenAccount(connection, participant2Keypair, rewardMintAddress, participant2Keypair.publicKey)
+    await mintTo(
+      connection,
+      participant2Keypair,
+      rewardMintAddress,
+      ata.address,
+      eventCreator,
+      100 * 100000000
+    )
+
     const [participant2Entry, participant2Bump] = await PublicKey.findProgramAddress(
       [participant2Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
       program.programId
@@ -108,8 +152,11 @@ describe("events-oracle", async () => {
         event: eventAddress,
         contestMint: contestMint,
         userTokenAccount: userTokenAddress,
+        userWagerTokenAccount: ata.address,
+        rewardVault: rewardVault,
         programMintAuthority: programMintAuthority,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY
       })
@@ -127,6 +174,17 @@ describe("events-oracle", async () => {
 
   it("Third participant joins event!", async () => {
     await safeAirdrop(participant3Keypair.publicKey, connection)
+
+    const ata = await getOrCreateAssociatedTokenAccount(connection, participant3Keypair, rewardMintAddress, participant3Keypair.publicKey)
+    await mintTo(
+      connection,
+      participant3Keypair,
+      rewardMintAddress,
+      ata.address,
+      eventCreator,
+      100 * 100000000
+    )
+
     const [participant3Entry, participant2Bump] = await PublicKey.findProgramAddress(
       [participant3Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
       program.programId
@@ -140,8 +198,11 @@ describe("events-oracle", async () => {
         event: eventAddress,
         contestMint: contestMint,
         userTokenAccount: userTokenAddress,
+        userWagerTokenAccount: ata.address,
+        rewardVault: rewardVault,
         programMintAuthority: programMintAuthority,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
         rent: SYSVAR_RENT_PUBKEY
       })
@@ -224,4 +285,31 @@ describe("events-oracle", async () => {
     .signers([participant3Keypair])
     .rpc()
   })
+
+  it("Third participant claims their rewards", async () => {
+    const [participant3Entry, participant2Bump] = await PublicKey.findProgramAddress(
+      [participant3Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant3Keypair.publicKey)
+    const userWagerTokenAccount = await getAssociatedTokenAddress(rewardMintAddress, participant3Keypair.publicKey)
+
+    let tx = await program.methods.claimRewards()
+      .accounts({
+        user: participant3Keypair.publicKey,
+        participant: participant3Entry,
+        event: eventAddress,
+        contestMint: contestMint,
+        userTokenAccount: userTokenAddress,
+        userWagerTokenAccount: userWagerTokenAccount,
+        rewardVault: rewardVault,
+        programMintAuthority: programMintAuthority,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([participant3Keypair])
+      .rpc()
+
+      await connection.confirmTransaction(tx)
+  })
+
 })

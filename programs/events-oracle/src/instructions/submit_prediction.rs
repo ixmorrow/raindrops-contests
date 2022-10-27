@@ -23,7 +23,7 @@ pub fn handler(ctx: Context<SubmitPredictionCtx>) -> Result<()> {
     if ((particiapnt.prediction as i64).checked_sub(contest.final_price).unwrap()).abs() < ((contest.closest_prediction as i64).checked_sub(contest.final_price.try_into().unwrap()).unwrap()).abs() {
         msg!("Difference between current guess and final price: {}", (particiapnt.prediction as i64).checked_sub(contest.final_price).unwrap().abs());
         contest.closest_prediction = particiapnt.prediction;
-        contest.winner = ctx.accounts.particiapnt.key();
+        contest.winner = ctx.accounts.participant.key();
     }
 
     Ok(())
@@ -43,7 +43,7 @@ pub struct SubmitPredictionCtx<'info> {
         mut,
         constraint = event.key() == participant.event
     )]
-    pub event: Account<'info, Event>,
+    pub event: Box<Account<'info, Event>>,
     #[account(
         constraint = user_token_account.mint == event.event_mint
     )]

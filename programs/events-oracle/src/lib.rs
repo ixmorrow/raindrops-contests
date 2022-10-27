@@ -11,8 +11,8 @@ declare_id!("887fNBoewDudLs7GUdEBFfpMZ9EmcFREK9Gmr3KY6pS7");
 pub mod events_oracle {
     use super::*;
 
-    pub fn create_event(ctx: Context<CreateEventCtx>, end_time_unix: i64) -> Result<()> {
-        create_event::handler(ctx, end_time_unix)
+    pub fn create_event(ctx: Context<CreateEventCtx>, end_time_unix: i64, wager_amt: u64) -> Result<()> {
+        create_event::handler(ctx, end_time_unix, wager_amt)
     }
 
     pub fn join_event(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
@@ -25,5 +25,9 @@ pub mod events_oracle {
 
     pub fn submit_prediction(ctx: Context<SubmitPredictionCtx>) -> Result<()> {
         submit_prediction::handler(ctx)
+    }
+
+    pub fn claim_rewards(ctx: Context<ClaimRewardsCtx>) -> Result<()> {
+        claim_rewards::handler(ctx)
     }
 }

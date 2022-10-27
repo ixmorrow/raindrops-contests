@@ -1,7 +1,9 @@
 use {
     anchor_lang::prelude::*,
     crate::state::*,
-    anchor_spl::token::{Mint, Token},
+    anchor_spl::{
+        token::{Mint, Token, TokenAccount},
+    },
     mpl_token_metadata::{
         ID,
         instruction::{create_metadata_accounts_v3}
@@ -10,7 +12,7 @@ use {
 };
 
 
-pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64) -> Result<()> {
+pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64, wager_amt: u64) -> Result<()> {
     // contest must end in future
     require_gt!(end_time_unix, Clock::get().unwrap().unix_timestamp);
 
@@ -65,6 +67,10 @@ pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64) -> Result<()> {
     event.event_mint = ctx.accounts.contest_mint.key();
     event.mint_authority = ctx.accounts.program_mint_authority.key();
     event.mint_authority_bump = *ctx.bumps.get("program_mint_authority").unwrap();
+    event.reward_mint = ctx.accounts.reward_mint.key();
+    event.reward_vault = ctx.accounts.reward_vault.key();
+    event.wager_amt= wager_amt;
+    event.pot_total = 0;
 
     Ok(())
 }
@@ -99,6 +105,16 @@ pub struct CreateEventCtx<'info> {
         bump
     )]
     pub program_mint_authority: AccountInfo<'info>,
+    pub reward_mint: Account<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
+        token::mint = reward_mint,
+        token::authority = program_mint_authority,
+        seeds = [REWARD_VAULT_SEED.as_bytes(), event.key().as_ref()],
+        bump
+    )]
+    pub reward_vault: Account<'info, TokenAccount>,
     ///CHECK: safe metadata account
     #[account(mut)]
     pub metadata_account: AccountInfo<'info>,

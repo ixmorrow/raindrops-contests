@@ -3,24 +3,22 @@ use {
     crate::state::*,
     crate::errors::*,
     anchor_spl::{
-        token::{MintTo, Token, TokenAccount, Mint, mint_to},
+        token::{MintTo, Token, TokenAccount, Mint, Transfer, transfer, mint_to},
         associated_token::AssociatedToken,
     }
 };
 
 
 pub fn handler(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
-    let event = &ctx.accounts.event;
-
     // verify event is not closed
-    if event.registration == EventState::Closed || event.status == EventState::Finished {
+    if ctx.accounts.event.registration == EventState::Closed || ctx.accounts.event.status == EventState::Finished {
         return Err(error!(EventError::RegistrationError));
     }
     
     // verify user qualifies
 
     // program signer seeds
-    let auth_bump = event.mint_authority_bump;
+    let auth_bump = ctx.accounts.event.mint_authority_bump;
     let auth_seeds = &[MINT_AUTHORITY_SEED.as_bytes(), &[auth_bump]];
     let signer = &[&auth_seeds[..]];
 
@@ -30,15 +28,20 @@ pub fn handler(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
         1
     )?;
 
+    // transfer wager amt to reward vault
+    transfer(ctx.accounts.transfer_ctx(), ctx.accounts.event.wager_amt)?;
+
     // add user to event
     let participant = &mut ctx.accounts.participant;
     participant.user = ctx.accounts.user.key();
-    participant.event = event.key();
+    participant.event = ctx.accounts.event.key();
     participant.prediction = prediction;
     participant.entry_time = Clock::get().unwrap().unix_timestamp;
     participant.contestant_mint = ctx.accounts.contest_mint.key();
     participant.contestant_token_acct = ctx.accounts.user_token_account.key();
     participant.bump = *ctx.bumps.get("participant").unwrap();
+
+    ctx.accounts.event.pot_total = ctx.accounts.event.pot_total.checked_add(ctx.accounts.event.wager_amt).unwrap();
 
     Ok(())
 }
@@ -54,8 +57,9 @@ pub struct JoinEventCtx<'info> {
         payer = user,
         space = PARTICIPANT_SIZE
     )]
-    pub participant: Account<'info, EventParticipant>,
-    pub event: Account<'info, Event>,
+    pub participant: Box<Account<'info, EventParticipant>>,
+    #[account(mut)]
+    pub event: Box<Account<'info, Event>>,
     #[account(mut)]
     pub contest_mint: Account<'info, Mint>,
     #[account(
@@ -65,6 +69,16 @@ pub struct JoinEventCtx<'info> {
         associated_token::authority = user
     )]
     pub user_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = user_wager_token_account.mint == event.reward_mint
+    )]
+    pub user_wager_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = reward_vault.key() == event.reward_vault
+    )]
+    pub reward_vault: Account<'info, TokenAccount>,
     ///CHECK: Program signer
     #[account(
         seeds = [MINT_AUTHORITY_SEED.as_bytes()],
@@ -84,6 +98,17 @@ impl<'info> JoinEventCtx <'info> {
             mint: self.contest_mint.to_account_info(),
             to: self.user_token_account.to_account_info(),
             authority: self.program_mint_authority.to_account_info()
+        };
+
+        CpiContext::new(cpi_program, cpi_accounts)
+    }
+
+    pub fn transfer_ctx(&self) -> CpiContext<'_, '_, '_, 'info, Transfer<'info>> {
+        let cpi_program = self.token_program.to_account_info();
+        let cpi_accounts = Transfer {
+            from: self.user_wager_token_account.to_account_info(),
+            to: self.reward_vault.to_account_info(),
+            authority: self.user.to_account_info()
         };
 
         CpiContext::new(cpi_program, cpi_accounts)
