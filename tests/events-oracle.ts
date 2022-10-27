@@ -43,7 +43,7 @@ describe("events-oracle", async () => {
     await safeAirdrop(participant1Keypair.publicKey, connection)
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
 
-    const tx = await program.methods.createEvent(new BN(currentUnixTime+5))
+    const tx = await program.methods.createEvent(new BN(currentUnixTime+8))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
@@ -69,7 +69,7 @@ describe("events-oracle", async () => {
     )
     const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant1Keypair.publicKey)
 
-    let tx = await program.methods.joinEvent(new BN(35))
+    let tx = await program.methods.joinEvent(new BN(352))
       .accounts({
         user: participant1Keypair.publicKey,
         participant: participant1Entry,
@@ -125,9 +125,41 @@ describe("events-oracle", async () => {
       assert(participantStateAcct.contestantTokenAcct.toBase58() == userTokenAddress.toBase58())
   })
 
+  it("Third participant joins event!", async () => {
+    await safeAirdrop(participant3Keypair.publicKey, connection)
+    const [participant3Entry, participant2Bump] = await PublicKey.findProgramAddress(
+      [participant3Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant3Keypair.publicKey)
+
+    let tx = await program.methods.joinEvent(new BN(3155590500))
+      .accounts({
+        user: participant3Keypair.publicKey,
+        participant: participant3Entry,
+        event: eventAddress,
+        contestMint: contestMint,
+        userTokenAccount: userTokenAddress,
+        programMintAuthority: programMintAuthority,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        rent: SYSVAR_RENT_PUBKEY
+      })
+      .signers([participant3Keypair])
+      .rpc()
+
+      await connection.confirmTransaction(tx)
+
+      let userTokenAcct = await getAccount(connection, userTokenAddress)
+      let participantStateAcct = await program.account.eventParticipant.fetch(participant3Entry)
+      assert(userTokenAcct.amount == BigInt(1))
+      assert(participantStateAcct.contestantMint.toBase58() == contestMint.toBase58())
+      assert(participantStateAcct.contestantTokenAcct.toBase58() == userTokenAddress.toBase58())
+  })
+
   it("End event!", async () => {
     // giving the contest some time to end
-    await delay(3000)
+    await delay(5000)
 
     await program.methods.endEvent()
       .accounts({
@@ -137,5 +169,59 @@ describe("events-oracle", async () => {
       })
       .signers([eventCreator])
       .rpc()
+  })
+
+  it("User 1 submits prediction", async () => {
+    const [participant1Entry, participant1Bump] = await PublicKey.findProgramAddress(
+      [participant1Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant1Keypair.publicKey)
+
+    await program.methods.submitPrediction()
+    .accounts({
+      user: participant1Keypair.publicKey,
+      participant: participant1Entry,
+      userTokenAccount: userTokenAddress,
+      event: eventAddress,
+    })
+    .signers([participant1Keypair])
+    .rpc()
+  })
+
+  it("User 2 submits prediction", async () => {
+    const [participant2Entry, participant1Bump] = await PublicKey.findProgramAddress(
+      [participant2Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant2Keypair.publicKey)
+
+    await program.methods.submitPrediction()
+    .accounts({
+      user: participant2Keypair.publicKey,
+      participant: participant2Entry,
+      userTokenAccount: userTokenAddress,
+      event: eventAddress,
+    })
+    .signers([participant2Keypair])
+    .rpc()
+  })
+
+  it("User 3 submits prediction", async () => {
+    const [participant3Entry, participant1Bump] = await PublicKey.findProgramAddress(
+      [participant3Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
+      program.programId
+    )
+    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant3Keypair.publicKey)
+
+    await program.methods.submitPrediction()
+    .accounts({
+      user: participant3Keypair.publicKey,
+      participant: participant3Entry,
+      userTokenAccount: userTokenAddress,
+      event: eventAddress,
+    })
+    .signers([participant3Keypair])
+    .rpc()
   })
 })

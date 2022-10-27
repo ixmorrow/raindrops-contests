@@ -30,7 +30,6 @@ pub fn handler(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
         1
     )?;
 
-
     // add user to event
     let participant = &mut ctx.accounts.participant;
     participant.user = ctx.accounts.user.key();

@@ -2,7 +2,7 @@ use {
     anchor_lang::prelude::*,
 };
 
-pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 32 + 1 + 1 + 1 + 8 + 8 + 32 + 32 + 1;
+pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 32 + 16 + 1 + 1 + 1 + 8 + 8 + 32 + 32 + 1 + 8 + 32;
 pub const EVENT_SEED: &str = "event";
 
 pub const PARTICIPANT_SIZE: usize = 8 + 32 + 32 + 8 + 8 + 1 + 32 + 32 + 1;
@@ -17,13 +17,16 @@ pub struct Event {
     pub start_time: i64,
     pub end_time: i64,
     pub pyth_price_feed: Pubkey,
+    pub pyth_exponent: i32,
     pub bump: u8,
     pub status: EventState,
     pub registration: EventState,
     pub final_price: i64,
     pub event_mint: Pubkey,
     pub mint_authority: Pubkey,
-    pub mint_authority_bump: u8
+    pub mint_authority_bump: u8,
+    pub closest_prediction: u64,
+    pub winner: Pubkey
 }
 
 #[account]

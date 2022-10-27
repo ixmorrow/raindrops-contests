@@ -11,7 +11,7 @@ pub fn handler(ctx: Context<EndEventCtx>) -> Result<()> {
     msg!("Current time: {}", Clock::get().unwrap().unix_timestamp);
     msg!("Event end time: {}", event.end_time);
     
-    require_gt!(Clock::get().unwrap().unix_timestamp, event.end_time);
+    //require_gt!(Clock::get().unwrap().unix_timestamp, event.end_time);
 
     // store final price to use
     let pyth_price_info = &ctx.accounts.pyth_price_feed;
@@ -21,6 +21,12 @@ pub fn handler(ctx: Context<EndEventCtx>) -> Result<()> {
 
     event.final_price = current_price.price;
     msg!("Final price: {}", event.final_price);
+    event.pyth_exponent = current_price.expo;
+    msg!("Exponent: {}", event.pyth_exponent);
+
+    // let normalize = (10 as i64).checked_pow(current_price.expo as u32).unwrap();
+    // let decimal_value = event.final_price.checked_mul(normalize.try_into().unwrap()).unwrap();
+    // msg!("Decomal value: {}", decimal_value);
 
     event.status = EventState::Finished;
     event.registration = EventState::Closed;

@@ -22,4 +22,8 @@ pub mod events_oracle {
     pub fn end_event(ctx: Context<EndEventCtx>) -> Result<()> {
         end_event::handler(ctx)
     }
+
+    pub fn submit_prediction(ctx: Context<SubmitPredictionCtx>) -> Result<()> {
+        submit_prediction::handler(ctx)
+    }
 }

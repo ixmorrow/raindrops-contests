@@ -11,5 +11,9 @@ pub enum EventError {
     #[msg("Pyth account provided does not match Event pyth account")]
     InvalidPythAccount,
     #[msg("Error loading price feed")]
-    PriceFeedError
+    PriceFeedError,
+    #[msg("Must wait for the contest to end before submitting prediction")]
+    InvalidSubmission,
+    #[msg("Must have Contest token to submit a prediction")]
+    MissingContestToken
 }
