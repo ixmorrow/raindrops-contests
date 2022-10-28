@@ -11,8 +11,8 @@ declare_id!("HbR4nXvUASns7kybpVN8CNggykFhgtHQThvMZv3AihBw");
 pub mod events_oracle {
     use super::*;
 
-    pub fn create_event(ctx: Context<CreateEventCtx>, end_time_unix: i64, wager_amt: u64) -> Result<()> {
-        create_event::handler(ctx, end_time_unix, wager_amt)
+    pub fn create_event(ctx: Context<CreateEventCtx>, end_betting: i64, end_time_unix: i64, wager_amt: u64) -> Result<()> {
+        create_event::handler(ctx, end_betting, end_time_unix, wager_amt)
     }
 
     pub fn join_event(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {

@@ -11,7 +11,7 @@ use {
 
 pub fn handler(ctx: Context<JoinEventCtx>, prediction: u64) -> Result<()> {
     // verify event is not closed
-    if ctx.accounts.event.registration == EventState::Closed || ctx.accounts.event.status == EventState::Finished {
+    if ctx.accounts.event.registration == EventState::Closed || Clock::get().unwrap().unix_timestamp > ctx.accounts.event.end_betting {
         return Err(error!(EventError::RegistrationError));
     }
     

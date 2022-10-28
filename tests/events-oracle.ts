@@ -59,9 +59,10 @@ describe("events-oracle", async () => {
     rewardMintAddress = rewardMint
 
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
-    const endTime = currentUnixTime+20
+    const endBetting = currentUnixTime+30
+    const endTime = currentUnixTime+35
 
-    const tx = await program.methods.createEvent(new BN(endTime), new BN(5))
+    const tx = await program.methods.createEvent(new BN(endBetting), new BN(endTime), new BN(5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
@@ -240,7 +241,7 @@ describe("events-oracle", async () => {
     const contest = await program.account.event.fetch(eventAddress)
     console.log("Current: ", currentUnixTime)
     console.log("End: ", contest.endTime.toNumber())
-    await delay(15000)
+    await delay(30000)
     let newUnixTime = Math.round((new Date()).getTime() / 1000)
     console.log("Current: ", newUnixTime)
     

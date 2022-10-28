@@ -12,7 +12,7 @@ use {
 };
 
 
-pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64, wager_amt: u64) -> Result<()> {
+pub fn handler(ctx: Context<CreateEventCtx>, end_betting_time: i64, end_time_unix: i64, wager_amt: u64) -> Result<()> {
     // contest must end in future
     require_gt!(end_time_unix, Clock::get().unwrap().unix_timestamp);
 
@@ -60,6 +60,7 @@ pub fn handler(ctx: Context<CreateEventCtx>, end_time_unix: i64, wager_amt: u64)
     event.creator = ctx.accounts.authority.key();
     event.bump = *ctx.bumps.get("event").unwrap();
     event.start_time = Clock::get().unwrap().unix_timestamp;
+    event.end_betting = end_betting_time;
     event.end_time = end_time_unix;
     event.status = EventState::Started;
     event.registration = EventState::Open;
