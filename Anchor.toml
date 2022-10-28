@@ -1,15 +1,17 @@
 [features]
 seeds = false
 skip-lint = false
+
+
 [programs.localnet]
-events_oracle = "887fNBoewDudLs7GUdEBFfpMZ9EmcFREK9Gmr3KY6pS7"
+events_oracle = "HbR4nXvUASns7kybpVN8CNggykFhgtHQThvMZv3AihBw"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
-wallet = "/home/ixmorrow/.config/solana/id.json"
+wallet = "/home/ixmorrow/.config/solana/test-wallet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

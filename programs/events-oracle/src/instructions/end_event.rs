@@ -33,13 +33,15 @@ pub fn handler(ctx: Context<EndEventCtx>) -> Result<()> {
 #[derive(Accounts)]
 pub struct EndEventCtx<'info> {
     #[account(
-        constraint = authority.key() == event.creator
+        constraint = authority.key() == PROGRAM_AUTHORITY
         @ EventError::InvalidEventAuthority
     )]
     pub authority: Signer<'info>,
+    /// CHECK: safe because we do not read or write to this account
+    pub creator: AccountInfo<'info>,
     #[account(
         mut,
-        seeds = [authority.key().as_ref(), EVENT_SEED.as_bytes()],
+        seeds = [creator.key().as_ref(), EVENT_SEED.as_bytes()],
         bump = event.bump,
     )]
     pub event: Box<Account<'info, Event>>,

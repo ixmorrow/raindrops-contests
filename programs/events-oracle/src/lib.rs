@@ -5,7 +5,7 @@ pub mod errors;
 pub mod instructions;
 pub mod state;
 
-declare_id!("887fNBoewDudLs7GUdEBFfpMZ9EmcFREK9Gmr3KY6pS7");
+declare_id!("HbR4nXvUASns7kybpVN8CNggykFhgtHQThvMZv3AihBw");
 
 #[program]
 pub mod events_oracle {

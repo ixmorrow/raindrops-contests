@@ -1,4 +1,5 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
+import axios from 'axios'
 
 export const PythSolFeed: PublicKey = new PublicKey("J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix")
 
@@ -16,4 +17,14 @@ export async function safeAirdrop(address: PublicKey, connection: Connection) {
         )
         await connection.confirmTransaction(signature)
     }
+}
+
+export async function hasContestEnded(contest: PublicKey) {
+    axios.get('https://raindrops-contests-crank.herokuapp.com/getContest?contest='+contest.toBase58(), {
+    })
+    .then(function (response) {
+    })
+    .catch(function (error) {
+        console.log(error)
+    })
 }

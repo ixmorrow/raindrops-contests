@@ -3,22 +3,22 @@ import { Program } from "@project-serum/anchor"
 import { EventsOracle } from "../target/types/events_oracle"
 import { Connection, PublicKey, LAMPORTS_PER_SOL, Keypair, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js'
 import { PythSolFeed, safeAirdrop, delay } from './utils/utils'
-import { participant1Keypair, participant2Keypair, participant3Keypair } from './test-keypairs/test-keypairs'
+import { participant1Keypair, participant2Keypair, participant3Keypair, programAuthority } from './test-keypairs/test-keypairs'
 import { BN } from "bn.js"
 import { Key, PROGRAM_ID as METADATA_PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata'
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, ASSOCIATED_TOKEN_PROGRAM_ID, getAccount,
   createMint, mintTo, getOrCreateAssociatedTokenAccount } from '@solana/spl-token'
 import { assert } from "chai"
+import axios from 'axios'
+
+anchor.setProvider(anchor.AnchorProvider.env())
+const eventCreator = new Keypair()
+let rewardMintAddress: PublicKey = null
+const program = anchor.workspace.EventsOracle as Program<EventsOracle>
+const provider = anchor.AnchorProvider.env()
+const connection = provider.connection
 
 describe("events-oracle", async () => {
-  anchor.setProvider(anchor.AnchorProvider.env())
-
-  const program = anchor.workspace.EventsOracle as Program<EventsOracle>
-  const provider = anchor.AnchorProvider.env()
-  const connection = provider.connection
-
-  const eventCreator = new Keypair()
-  let rewardMintAddress: PublicKey = null
 
   const [eventAddress, eventBump] = await PublicKey.findProgramAddress(
       [eventCreator.publicKey.toBuffer(), Buffer.from("event")],
@@ -59,8 +59,9 @@ describe("events-oracle", async () => {
     rewardMintAddress = rewardMint
 
     const currentUnixTime = Math.round((new Date()).getTime() / 1000)
+    const endTime = currentUnixTime+20
 
-    const tx = await program.methods.createEvent(new BN(currentUnixTime+8), new BN(5))
+    const tx = await program.methods.createEvent(new BN(endTime), new BN(5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
@@ -79,6 +80,19 @@ describe("events-oracle", async () => {
       .rpc()
 
       await connection.confirmTransaction(tx)
+
+      // add contest to crank db
+      axios.post('https://raindrops-contests-crank.herokuapp.com/addContest', {
+        contestPubkey: eventAddress.toBase58(),
+        creator: eventCreator.publicKey.toBase58(),
+        priceFeed: PythSolFeed.toBase58(),
+        endTime: endTime
+      })
+      .catch(function (error) {
+        console.log(error)
+      })
+
+      console.log("Contest: ", eventAddress.toBase58())
   })
 
   it("First participant joins event!", async () => {
@@ -218,39 +232,18 @@ describe("events-oracle", async () => {
       assert(participantStateAcct.contestantTokenAcct.toBase58() == userTokenAddress.toBase58())
   })
 
-  it("End event!", async () => {
-    // giving the contest some time to end
-    await delay(5000)
-
-    await program.methods.endEvent()
-      .accounts({
-        authority: eventCreator.publicKey,
-        event: eventAddress,
-        pythPriceFeed: PythSolFeed,
-      })
-      .signers([eventCreator])
-      .rpc()
-  })
-
-  it("User 1 submits prediction", async () => {
-    const [participant1Entry, participant1Bump] = await PublicKey.findProgramAddress(
-      [participant1Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
-      program.programId
-    )
-    const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant1Keypair.publicKey)
-
-    await program.methods.submitPrediction()
-    .accounts({
-      user: participant1Keypair.publicKey,
-      participant: participant1Entry,
-      userTokenAccount: userTokenAddress,
-      event: eventAddress,
-    })
-    .signers([participant1Keypair])
-    .rpc()
-  })
+  // END EVENT HANDLED BY CRANK
 
   it("User 2 submits prediction", async () => {
+    // wait for the crank to end contest
+    let currentUnixTime = Math.round((new Date()).getTime() / 1000)
+    const contest = await program.account.event.fetch(eventAddress)
+    console.log("Current: ", currentUnixTime)
+    console.log("End: ", contest.endTime.toNumber())
+    await delay(15000)
+    let newUnixTime = Math.round((new Date()).getTime() / 1000)
+    console.log("Current: ", newUnixTime)
+    
     const [participant2Entry, participant1Bump] = await PublicKey.findProgramAddress(
       [participant2Keypair.publicKey.toBuffer(), eventAddress.toBuffer(), Buffer.from("event-participant")],
       program.programId

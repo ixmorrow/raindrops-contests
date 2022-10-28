@@ -1,5 +1,6 @@
 use {
     anchor_lang::prelude::*,
+    solana_program::{pubkey, pubkey::Pubkey},
 };
 
 pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 32 + 16 + 1 + 1 + 1 + 8 + 8 + 32 + 32 + 1 + 8 + 32 + 32 + 32 + 8 + 8;
@@ -11,6 +12,8 @@ pub const PARTICIPANT_SEED: &str = "event-participant";
 pub const MINT_AUTHORITY_SEED: &str = "mint-authority";
 pub const CONTEST_MINT_SEED: &str = "contest-mint";
 pub const REWARD_VAULT_SEED: &str = "reward-vault";
+
+pub static PROGRAM_AUTHORITY: Pubkey = pubkey!("6xErKAUAuWxabm9BB6ePxVJaU5nyo7BNZ1NkDqk94Psc");
 
 #[account]
 pub struct Event {
