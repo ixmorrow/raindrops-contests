@@ -9,7 +9,9 @@ use {
 
 pub fn handler(ctx: Context<SubmitPredictionCtx>) -> Result<()> {
     let contest = &mut ctx.accounts.event;
-    require!(contest.status == EventState::Finished, EventError::InvalidSubmission);    
+    require!(contest.status == EventState::Finished, EventError::InvalidSubmission); 
+    
+    require!(Clock::get().unwrap().unix_timestamp <= contest.end_time + contest.prediction_submission_window, EventError::InvalidSubmission);
 
     let _user_token_acct = &ctx.accounts.user_token_account;
     //require!(user_token_acct.balance == 1, EventError::MissingContestToken);

@@ -11,6 +11,7 @@ pub fn handler(ctx: Context<ClaimRewardsCtx>) -> Result<()> {
     let contest = &ctx.accounts.event;
     let participant = &ctx.accounts.participant;
 
+    require!(contest.prediction_submission_window + contest.end_time < Clock::get().unwrap().unix_timestamp, EventError::SubmissionPeriodNotOver);
     require!(contest.winner == participant.key(), EventError::NoRewardsToClaim);
     msg!("Congrats, you are the winner!");
     

@@ -62,7 +62,7 @@ describe("events-oracle", async () => {
     const endBetting = currentUnixTime+30
     const endTime = currentUnixTime+35
 
-    const tx = await program.methods.createEvent(new BN(endBetting), new BN(endTime), new BN(5))
+    const tx = await program.methods.createEvent(new BN(endBetting), new BN(endTime), new BN(60), new BN(5))
       .accounts({
         authority: eventCreator.publicKey,
         event: eventAddress,
@@ -287,6 +287,9 @@ describe("events-oracle", async () => {
     )
     const userTokenAddress = await getAssociatedTokenAddress(contestMint, participant3Keypair.publicKey)
     const userWagerTokenAccount = await getAssociatedTokenAddress(rewardMintAddress, participant3Keypair.publicKey)
+
+    // wait for submission period to pass
+    await delay(60000)
 
     let tx = await program.methods.claimRewards()
       .accounts({

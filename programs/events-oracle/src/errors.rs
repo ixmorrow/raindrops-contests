@@ -17,5 +17,7 @@ pub enum EventError {
     #[msg("Must have Contest token to submit a prediction")]
     MissingContestToken,
     #[msg("You are not the winner, you have no rewards to claim")]
-    NoRewardsToClaim
+    NoRewardsToClaim,
+    #[msg("Submission period is not over")]
+    SubmissionPeriodNotOver
 }

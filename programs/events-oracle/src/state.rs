@@ -3,7 +3,7 @@ use {
     solana_program::{pubkey, pubkey::Pubkey},
 };
 
-pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 8 + 32 + 16 + 1 + 1 + 1 + 8 + 8 + 32 + 32 + 1 + 8 + 32 + 32 + 32 + 8 + 8;
+pub const EVENT_SIZE: usize = 8 + 32 + 8 + 8 + 8 + 8 + 32 + 16 + 1 + 1 + 1 + 8 + 8 + 32 + 32 + 1 + 8 + 32 + 32 + 32 + 8 + 8;
 pub const EVENT_SEED: &str = "event";
 
 pub const PARTICIPANT_SIZE: usize = 8 + 32 + 32 + 8 + 8 + 1 + 32 + 32 + 1;
@@ -21,6 +21,7 @@ pub struct Event {
     pub start_time: i64,
     pub end_betting: i64,
     pub end_time: i64,
+    pub prediction_submission_window: i64,
     pub pyth_price_feed: Pubkey,
     pub pyth_exponent: i32,
     pub bump: u8,

@@ -12,7 +12,7 @@ use {
 };
 
 
-pub fn handler(ctx: Context<CreateEventCtx>, end_betting_time: i64, end_time_unix: i64, wager_amt: u64) -> Result<()> {
+pub fn handler(ctx: Context<CreateEventCtx>, end_betting_time: i64, end_time_unix: i64, submission_window: i64, wager_amt: u64) -> Result<()> {
     // contest must end in future
     require_gt!(end_time_unix, Clock::get().unwrap().unix_timestamp);
 
@@ -62,6 +62,7 @@ pub fn handler(ctx: Context<CreateEventCtx>, end_betting_time: i64, end_time_uni
     event.start_time = Clock::get().unwrap().unix_timestamp;
     event.end_betting = end_betting_time;
     event.end_time = end_time_unix;
+    event.prediction_submission_window = submission_window;
     event.status = EventState::Started;
     event.registration = EventState::Open;
     event.pyth_price_feed = ctx.accounts.pyth_price_feed.key();
